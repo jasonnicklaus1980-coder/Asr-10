@@ -1,1 +1,27 @@
-
+name: ARM build from zip
+on: [push, workflow_dispatch]
+jobs:
+  arm:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unzip the source
+        run: unzip -q ASR10-MPC-source-ensoniq.zip
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm
+      - name: Build both plugins for ARM (a few minutes)
+        working-directory: ASR10-MPC
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq zip >/dev/null
+          bash scripts/package.sh
+          bash scripts/package_inst.sh
+      - name: Check the binaries against the known-good effect
+        working-directory: ASR10-MPC
+        run: |
+          bash scripts/check_arm.sh build/arm/asr10.so
+          bash scripts/check_arm.sh build/arm/asr10_inst.so build/arm/asr10.so
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mpc-armv7-packages
+          path: ASR10-MPC/dist/*.zip
